@@ -84,36 +84,42 @@ const updateTicketProgress = () => {
 };
 
 const renderGuests = () => {
-  guestListBody.innerHTML = "";
-  let totalAmount = 0;
-  let totalTickets = 0;
-  if (guests.length === 0) {
-    guestListBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--text-light-color);">기록된 정보가 없습니다.</td></tr>`;
-  } else {
-    guests.forEach((guest, index) => {
-      const row = document.createElement("tr");
-      const memoButton = guest.memo
-        ? `<button class="memo-btn" data-index="${index}">메모</button>`
-        : "";
-      row.innerHTML = `
+	guestListBody.innerHTML = '';
+	let totalAmount = 0;
+	let totalTickets = 0;
+	if (guests.length === 0) {
+		guestListBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--text-light-color);">기록된 정보가 없습니다.</td></tr>`;
+	} else {
+		guests.forEach((guest, index) => {
+			const row = document.createElement('tr');
+
+			// 메모 버튼 로직 및 버튼 디자인 변경
+			const memoButton = guest.memo
+				? `<button class="memo-btn" data-index="${index}"><i class="fa-solid fa-note-sticky"></i> 메모</button>`
+				: `<button class="placeholder" disabled></button>`; // 메모가 없으면 빈 공간 차지
+
+			const amountInManwon = guest.amount / 10000;
+			const displayAmount = Number.isInteger(amountInManwon) ? `${amountInManwon}만원` : `${amountInManwon.toLocaleString()}만원`;
+
+			row.innerHTML = `
 				<td>${index + 1}</td>
 				<td>${guest.name}</td>
-				<td>${guest.amount.toLocaleString()}원</td>
+				<td>${displayAmount}</td>
 				<td>${guest.relation}</td>
 				<td>${guest.tickets}개</td>
 				<td class="action-buttons">
 					${memoButton}
-					<button class="edit-btn" data-index="${index}">수정</button>
-					<button class="delete-btn" data-index="${index}">삭제</button>
+					<button class="edit-btn" data-index="${index}"><i class="fa-solid fa-pencil"></i> 수정</button>
+					<button class="delete-btn" data-index="${index}"><i class="fa-solid fa-trash-can"></i> 삭제</button>
 				</td>`;
-      guestListBody.appendChild(row);
-      totalAmount += guest.amount;
-      totalTickets += guest.tickets;
-    });
-  }
-  totalAmountEl.textContent = `${totalAmount.toLocaleString()}원`;
-  totalTicketsEl.textContent = `${totalTickets}개`;
-  updateTicketProgress();
+			guestListBody.appendChild(row);
+			totalAmount += guest.amount;
+			totalTickets += guest.tickets;
+		});
+	}
+	totalAmountEl.textContent = `${totalAmount.toLocaleString()}원`;
+	totalTicketsEl.textContent = `${totalTickets}개`;
+	updateTicketProgress();
 };
 
 const updateJsonPreview = () => {

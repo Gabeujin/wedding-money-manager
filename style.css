@@ -206,14 +206,23 @@ button {
   background-color: #f0f3f6;
 }
 .action-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+	display: flex;
+	flex-direction: column; /* 세로 정렬로 변경 */
+	gap: 6px;
+	justify-content: center; /* 버튼들을 중앙에 위치 */
 }
+
 .action-buttons button {
-  width: 100%;
-  margin: 0;
-  padding: 8px 10px;
+	display: flex; /* 아이콘과 텍스트 정렬을 위해 flex 사용 */
+	align-items: center;
+	justify-content: center; /* 내부 콘텐츠 중앙 정렬 */
+	gap: 6px; /* 아이콘과 텍스트 사이 간격 */
+	width: 100%;
+	margin: 0;
+	padding: 8px 10px;
+}
+.action-buttons .placeholder {
+	visibility: hidden; /* 보이지 않지만 자리는 차지함 */
 }
 .memo-btn {
   background-color: var(--info-color);
