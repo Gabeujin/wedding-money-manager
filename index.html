@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wedding Money Manager</title>
+    <link rel="stylesheet" href="style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <header class="main-header">
+        <h1>Wedding Money Manager</h1>
+      </header>
+
+      <div class="summary">
+        <div class="summary-item" id="total-amount-summary">
+          <h2>총 축의금</h2>
+          <p id="total-amount" data-tooltip="클릭하여 통계 보기">0원</p>
+        </div>
+        <div class="summary-item" id="total-tickets-summary">
+          <h2>총 식권</h2>
+          <p id="total-tickets" data-tooltip="클릭하여 설정 및 통계 보기">
+            0개
+          </p>
+          <div class="progress-bar-container">
+            <div id="ticket-progress-bar" class="progress-bar"></div>
+          </div>
+        </div>
+      </div>
+
+      <form id="guest-form" class="input-form">
+        <div class="form-group">
+          <label for="name">하객 이름</label
+          ><input type="text" id="name" required autocomplete="off" />
+          <div id="autocomplete-box"></div>
+        </div>
+        <div class="form-group">
+          <label for="amount">금액 (만원)</label
+          ><input type="number" id="amount" required min="0" step="1" />
+        </div>
+        <div class="form-group">
+          <label for="relation">관계</label><input type="text" id="relation" />
+        </div>
+        <div class="form-group">
+          <label for="tickets">식권 (개)</label
+          ><input type="number" id="tickets" required value="1" min="0" />
+        </div>
+        <div class="form-group">
+          <label for="memo">메모</label><input type="text" id="memo" />
+        </div>
+        <button type="submit" id="add-btn">추가</button>
+      </form>
+      <div class="button-group">
+        <button id="manage-relations-btn" class="manage-btn">
+          하객 명단 관리
+        </button>
+        <button id="export-csv" class="export-btn">CSV로 내보내기</button>
+        <button id="clear-all" class="clear-btn">전체 삭제</button>
+      </div>
+      <div class="guest-list-container">
+        <table class="guest-list">
+          <thead>
+            <tr>
+              <th>No.</th>
+              <th>이름</th>
+              <th>금액</th>
+              <th>관계</th>
+              <th>식권</th>
+              <th>작업</th>
+            </tr>
+          </thead>
+          <tbody id="guest-list-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="memo-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="memo-modal-title">메모 내용</h2>
+          <button class="modal-close" id="memo-modal-close">&times;</button>
+        </div>
+        <div class="modal-body" id="memo-modal-body"></div>
+      </div>
+    </div>
+    <div class="modal-overlay" id="relation-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>하객 명단 관리</h2>
+          <button class="modal-close" id="relation-modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <nav class="tab-nav">
+            <button class="active" data-tab="upload">파일 업로드</button
+            ><button data-tab="manual">직접 입력</button>
+          </nav>
+          <div id="upload-tab" class="tab-content active">
+            <p>JSON 또는 Excel 파일을 업로드하세요.</p>
+            <input
+              type="file"
+              id="file-upload"
+              accept=".json, .xlsx, .xls"
+            /><small>JSON: [{"name":"이름", "relation":"관계"}, ...]</small
+            ><small>Excel: '이름', '관계' 컬럼명이 포함되어야 합니다.</small>
+          </div>
+          <div id="manual-tab" class="tab-content">
+            <div class="manual-section">
+              <div class="json-preview-header">
+                <span>JSON 데이터 미리보기</span>
+                <div>
+                  <button id="copy-json-btn" title="JSON 복사">
+                    <i class="fa-regular fa-copy"></i></button
+                  ><button id="clear-json-btn" title="명단 비우기">
+                    <i class="fa-solid fa-trash-can"></i>
+                  </button>
+                </div>
+              </div>
+              <pre id="json-preview"></pre>
+            </div>
+            <div class="manual-section">
+              <div class="manual-input-grid">
+                <div class="form-group">
+                  <label for="manual-name">이름</label
+                  ><input type="text" id="manual-name" placeholder="홍길동" />
+                </div>
+                <div class="form-group">
+                  <label for="manual-relation">관계</label
+                  ><input
+                    type="text"
+                    id="manual-relation"
+                    placeholder="신랑 친구"
+                  />
+                </div>
+                <button id="manual-add-btn" class="manage-btn">추가</button>
+              </div>
+            </div>
+          </div>
+          <br /><button
+            id="save-relations-btn"
+            class="manage-btn"
+            style="width: 100%"
+          >
+            이 명단으로 저장
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-overlay" id="stats-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>축의금 통계</h2>
+          <button class="modal-close" id="stats-modal-close">&times;</button>
+        </div>
+        <div class="modal-body" id="stats-modal-body"></div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="ticket-stats-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>식권 설정 및 통계</h2>
+          <button class="modal-close" id="ticket-stats-modal-close">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="ticket-config-section">
+            <h3>설정</h3>
+            <div class="config-grid">
+              <div class="form-group">
+                <label for="ticket-price">식권 1장당 가격 (원)</label
+                ><input
+                  type="number"
+                  id="ticket-price"
+                  placeholder="60000"
+                  min="0"
+                />
+              </div>
+              <div class="form-group">
+                <label for="ticket-limit">기본 식권 (장)</label
+                ><input
+                  type="number"
+                  id="ticket-limit"
+                  placeholder="180"
+                  min="0"
+                />
+              </div>
+              <div class="form-group">
+                <label for="ticket-buffer">여유분 (장 또는 %)</label
+                ><input
+                  type="text"
+                  id="ticket-buffer"
+                  placeholder="20 또는 10%"
+                />
+              </div>
+            </div>
+            <button id="save-ticket-config-btn" class="manage-btn">
+              설정 저장
+            </button>
+          </div>
+          <div id="ticket-stats-body"></div>
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
