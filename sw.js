@@ -17,7 +17,7 @@ const FILES_TO_CACHE = [
 // 웹사이트 첫 방문 시, 정의된 파일들을 캐시에 저장합니다.
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_-NAME)
+    caches.open(CACHE_NAME)
       .then((cache) => {
         console.log('[Service Worker] Caching app shell');
         return cache.addAll(FILES_TO_CACHE);
