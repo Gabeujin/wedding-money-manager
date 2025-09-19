@@ -58,6 +58,9 @@ const guestListHeader = document.querySelector(".guest-list thead");
 const scrollToTopBtn = document.getElementById("scroll-to-top");
 const scrollToBottomBtn = document.getElementById("scroll-to-bottom");
 const confirmModal = document.getElementById("confirm-modal");
+const manualRelationSuggestionBox = document.getElementById(
+  "manual-relation-suggestion-box"
+);
 
 // --- 함수 정의 ---
 document.addEventListener("DOMContentLoaded", () => {
@@ -233,6 +236,36 @@ const showConfirm = (message) => {
 
 // --- 이벤트 리스너 설정 ---
 relationInput.addEventListener("focus", () => {
+  relationSuggestionBox.innerHTML = "";
+  commonRelations.forEach((relation) => {
+    const item = document.createElement("div");
+    item.className = "suggestion-item";
+    item.textContent = relation;
+    item.addEventListener("click", () => {
+      relationInput.value = relation;
+      relationSuggestionBox.innerHTML = "";
+    });
+    relationSuggestionBox.appendChild(item);
+  });
+});
+
+manualRelationInput.addEventListener("focus", () => {
+  manualRelationSuggestionBox.innerHTML = ""; // 목록 초기화
+  // 메인 화면과 동일한 commonRelations 배열 사용
+  commonRelations.forEach((relation) => {
+    const item = document.createElement("div");
+    item.className = "suggestion-item"; // 기존 스타일 재사용
+    item.textContent = relation;
+    item.addEventListener("click", () => {
+      manualRelationInput.value = relation;
+      manualRelationSuggestionBox.innerHTML = ""; // 선택 후 목록 숨기기
+    });
+    manualRelationSuggestionBox.appendChild(item);
+  });
+});
+
+// --- 이벤트 리스너 설정 ---
+manualRelationInput.addEventListener("focus", () => {
   relationSuggestionBox.innerHTML = "";
   commonRelations.forEach((relation) => {
     const item = document.createElement("div");
@@ -474,6 +507,9 @@ document.addEventListener("click", (e) => {
   }
   if (e.target !== relationInput) {
     relationSuggestionBox.innerHTML = "";
+  }
+  if (e.target !== manualRelationInput) {
+    manualRelationSuggestionBox.innerHTML = "";
   }
 });
 
