@@ -765,3 +765,17 @@ scrollToBottomBtn.addEventListener("click", () => {
 renderGuests();
 nameInput.focus();
 handleScrollButtons();
+
+// --- PWA 서비스 워커 등록 ---
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    // [중요!] GitHub Pages 저장소 이름에 맞게 경로를 수정해야 합니다.
+    navigator.serviceWorker.register('/wedding-money-manager/sw.js')
+      .then(registration => {
+        console.log('Service Worker registered successfully:', registration);
+      })
+      .catch(registrationError => {
+        console.log('Service Worker registration failed:', registrationError);
+      });
+  });
+}
