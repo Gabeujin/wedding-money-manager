@@ -500,3 +500,22 @@ button:active {
 .scroll-buttons button:hover {
   opacity: 1;
 }
+
+.main-header div.bmc-btn-container {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+}
+
+.main-header div.bmc-btn-container a.bmc-btn {
+  zoom:0.53;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif !important;
+  background-color: #d8caba !important;
+  color: #5f4747 !important;
+  opacity: 0.35 !important;
+}
+
+.main-header div.bmc-btn-container a.bmc-btn:hover {
+  zoom:0.535;
+  opacity: 1 !important;
+}
