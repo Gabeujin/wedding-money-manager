@@ -1,7 +1,7 @@
-// [수정됨] 캐시 이름을 v2로 변경하여 서비스 워커 업데이트를 트리거합니다.
+// 캐시 이름을 v2로 변경하여 서비스 워커 업데이트를 트리거합니다
 const CACHE_NAME = 'wedding-money-manager-v2';
 
-// [수정됨] GitHub Pages 경로에 맞게 모든 파일 경로 앞에 './'를 추가합니다.
+// GitHub Pages 경로에 맞게 모든 파일 경로 앞에 './'를 추가합니다.
 const FILES_TO_CACHE = [
   './',
   './index.html',
