@@ -2,19 +2,30 @@
 const GUEST_DATA_KEY = "weddingGuestsV8";
 const PREDEFINED_GUESTS_KEY = "weddingPredefinedGuests";
 const TICKET_CONFIG_KEY = "weddingTicketConfig";
+const TOAST_DISPLAY_MISEC = 2200;
 
 // --- 전역 변수 및 데이터 ---
 let predefinedGuests =
-  JSON.parse(localStorage.getItem("PREDEFINED_GUESTS_KEY")) || [];
-let guests = JSON.parse(localStorage.getItem("GUEST_DATA_KEY")) || [];
+  JSON.parse(localStorage.getItem(PREDEFINED_GUESTS_KEY)) || [];
+let guests = JSON.parse(localStorage.getItem(GUEST_DATA_KEY)) || [];
 // 식권 설정 (기본값)
-let ticketConfig = JSON.parse(localStorage.getItem("TICKET_CONFIG_KEY")) || {
+let ticketConfig = JSON.parse(localStorage.getItem(TICKET_CONFIG_KEY)) || {
   price: 60000,
   limit: 180,
   buffer: "10%",
 };
 let tempPredefinedGuests = [];
 let editIndex = -1;
+
+// 관계 추천 목록 로직
+const commonRelations = [
+  "신랑 지인",
+  "신부 지인",
+  "신랑 부모님 지인",
+  "신부 부모님 지인",
+];
+
+let lastFocusedElement; // 모달이 열리기 전 포커스를 저장할 변수
 
 // --- DOM Elements ---
 const nameInput = document.getElementById("name");
@@ -24,6 +35,10 @@ const totalTicketsEl = document.getElementById("total-tickets");
 const autocompleteBox = document.getElementById("autocomplete-box");
 const progressBar = document.getElementById("ticket-progress-bar");
 const progressBarContainer = document.querySelector(".progress-bar-container");
+const relationInput = document.getElementById("relation");
+const relationSuggestionBox = document.getElementById(
+  "relation-suggestion-box"
+);
 
 // Modals
 const memoModal = document.getElementById("memo-modal");
@@ -36,16 +51,13 @@ const manualRelationInput = document.getElementById("manual-relation");
 
 // --- 데이터 저장 및 렌더링 함수 ---
 const saveData = () =>
-  localStorage.setItem("GUEST_DATA_KEY", JSON.stringify(guests));
+  localStorage.setItem(GUEST_DATA_KEY, JSON.stringify(guests));
 const saveTicketConfig = () =>
-  localStorage.setItem("TICKET_CONFIG_KEY", JSON.stringify(ticketConfig));
+  localStorage.setItem(TICKET_CONFIG_KEY, JSON.stringify(ticketConfig));
 
 const savePredefinedGuests = () => {
   predefinedGuests = [...tempPredefinedGuests];
-  localStorage.setItem(
-    "PREDEFINED_GUESTS_KEY",
-    JSON.stringify(predefinedGuests)
-  );
+  localStorage.setItem(PREDEFINED_GUESTS_KEY, JSON.stringify(predefinedGuests));
 };
 
 const updateTicketProgress = () => {
@@ -84,24 +96,38 @@ const updateTicketProgress = () => {
 };
 
 const renderGuests = () => {
-	guestListBody.innerHTML = '';
-	let totalAmount = 0;
-	let totalTickets = 0;
-	if (guests.length === 0) {
-		guestListBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--text-light-color);">기록된 정보가 없습니다.</td></tr>`;
-	} else {
-		guests.forEach((guest, index) => {
-			const row = document.createElement('tr');
+  guestListBody.innerHTML = "";
+  let totalAmount = 0;
+  let totalTickets = 0;
+  if (guests.length === 0) {
+    // [수정됨] 비어있을 때 보여줄 UI 개선
+    const emptyStateHTML = `
+      <tr>
+        <td colspan="6">
+          <div class="empty-state">
+            <i class="fa-solid fa-clipboard-list"></i>
+            <h3>아직 기록된 하객이 없어요</h3>
+            <p>상단 입력창에 첫 번째 하객 정보를 추가해보세요!</p>
+          </div>
+        </td>
+      </tr>
+    `;
+    guestListBody.innerHTML = emptyStateHTML;
+  } else {
+    guests.forEach((guest, index) => {
+      const row = document.createElement("tr");
 
-			// 메모 버튼 로직 및 버튼 디자인 변경
-			const memoButton = guest.memo
-				? `<button class="memo-btn" data-index="${index}"><i class="fa-solid fa-note-sticky"></i> 메모</button>`
-				: `<button class="placeholder" disabled></button>`; // 메모가 없으면 빈 공간 차지
+      // 메모 버튼 로직 및 버튼 디자인 변경
+      const memoButton = guest.memo
+        ? `<button class="memo-btn" data-index="${index}"><i class="fa-solid fa-note-sticky"></i> 메모</button>`
+        : `<button class="placeholder" disabled></button>`; // 메모가 없으면 빈 공간 차지
 
-			const amountInManwon = guest.amount / 10000;
-			const displayAmount = Number.isInteger(amountInManwon) ? `${amountInManwon}만원` : `${amountInManwon.toLocaleString()}만원`;
+      const amountInManwon = guest.amount / 10000;
+      const displayAmount = Number.isInteger(amountInManwon)
+        ? `${amountInManwon}만원`
+        : `${amountInManwon.toLocaleString()}만원`;
 
-			row.innerHTML = `
+      row.innerHTML = `
 				<td>${index + 1}</td>
 				<td>${guest.name}</td>
 				<td>${displayAmount}</td>
@@ -112,18 +138,124 @@ const renderGuests = () => {
 					<button class="edit-btn" data-index="${index}"><i class="fa-solid fa-pencil"></i> 수정</button>
 					<button class="delete-btn" data-index="${index}"><i class="fa-solid fa-trash-can"></i> 삭제</button>
 				</td>`;
-			guestListBody.appendChild(row);
-			totalAmount += guest.amount;
-			totalTickets += guest.tickets;
-		});
-	}
-	totalAmountEl.textContent = `${totalAmount.toLocaleString()}원`;
-	totalTicketsEl.textContent = `${totalTickets}개`;
-	updateTicketProgress();
+      guestListBody.appendChild(row);
+      totalAmount += guest.amount;
+      totalTickets += guest.tickets;
+    });
+  }
+  totalAmountEl.textContent = `${totalAmount.toLocaleString()}원`;
+  totalTicketsEl.textContent = `${totalTickets}개`;
+  updateTicketProgress();
 };
 
 const updateJsonPreview = () => {
   jsonPreview.textContent = JSON.stringify(tempPredefinedGuests, null, 2);
+};
+
+// --- 초기 실행 --- 바로 위에 추가하거나, 코드의 로직 시작점에 추가
+// 페이지 로드 시 토스트 컨테이너에 ARIA 속성 부여
+document.addEventListener("DOMContentLoaded", () => {
+  const toastContainer = document.getElementById("toast-container");
+  if (toastContainer) {
+    toastContainer.setAttribute("aria-live", "assertive");
+    toastContainer.setAttribute("aria-atomic", "true");
+  }
+});
+
+// --- 토스트 알림 함수 ---
+const showToast = (message, type = "info") => {
+  const toastContainer = document.getElementById("toast-container");
+
+  const toast = document.createElement("div");
+  toast.className = `toast ${type}`;
+  toast.setAttribute("role", "status"); // 스크린 리더가 인지하도록 role 속성 추가
+
+  let iconClass = "fa-solid fa-circle-info";
+  if (type === "success") {
+    iconClass = "fa-solid fa-check-circle";
+  } else if (type === "error") {
+    iconClass = "fa-solid fa-triangle-exclamation";
+  }
+
+  toast.innerHTML = `<i class="${iconClass}"></i> ${message}`;
+
+  toastContainer.appendChild(toast);
+
+  setTimeout(() => {
+    toast.remove();
+  }, TOAST_DISPLAY_MISEC);
+};
+
+// --- 커스텀 Confirm 함수 (Promise 기반) ---
+// 포커스 제어를 포함한 범용 모달 열기 함수
+const openModal = (modal) => {
+  lastFocusedElement = document.activeElement; // 현재 포커스된 요소 저장
+  modal.style.display = "flex";
+
+  const focusableElements = modal.querySelectorAll(
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+  );
+  const firstElement = focusableElements[0];
+  const lastElement = focusableElements[focusableElements.length - 1];
+
+  firstElement?.focus(); // 모달의 첫 번째 요소에 포커스
+
+  modal.addEventListener("keydown", (e) => {
+    if (e.key !== "Tab") return;
+
+    // Shift + Tab (역방향)
+    if (e.shiftKey) {
+      if (document.activeElement === firstElement) {
+        e.preventDefault();
+        lastElement?.focus();
+      }
+    } else {
+      // Tab (정방향)
+      if (document.activeElement === lastElement) {
+        e.preventDefault();
+        firstElement?.focus();
+      }
+    }
+  });
+};
+
+// [추가됨] 포커스 제어를 포함한 범용 모달 닫기 함수
+const closeModal = (modal) => {
+  modal.style.display = "none";
+  lastFocusedElement?.focus(); // 이전에 포커스된 요소로 복귀
+};
+
+// --- 커스텀 Confirm 함수 (Promise 기반) ---
+const showConfirm = (message) => {
+  return new Promise((resolve) => {
+    const confirmModal = document.getElementById("confirm-modal");
+    const modalBody = document.getElementById("confirm-modal-body");
+    const yesBtn = document.getElementById("confirm-btn-yes");
+    const noBtn = document.getElementById("confirm-btn-no");
+
+    modalBody.textContent = message;
+    openModal(confirmModal); // [수정] 범용 열기 함수 사용
+    ``;
+    const handleYes = () => {
+      closeModal(confirmModal); // [수정] 범용 닫기 함수 사용
+      resolve(true);
+      removeListeners();
+    };
+
+    const handleNo = () => {
+      closeModal(confirmModal); // [수정] 범용 닫기 함수 사용
+      resolve(false);
+      removeListeners();
+    };
+
+    const removeListeners = () => {
+      yesBtn.removeEventListener("click", handleYes);
+      noBtn.removeEventListener("click", handleNo);
+    };
+
+    yesBtn.addEventListener("click", handleYes);
+    noBtn.addEventListener("click", handleNo);
+  });
 };
 
 // --- 이벤트 리스너 설정 ---
@@ -133,7 +265,7 @@ document
   .getElementById("total-amount-summary")
   .addEventListener("click", () => {
     if (guests.length === 0) {
-      alert("통계를 보려면 먼저 하객 정보를 추가해주세요.");
+      showToast("먼저 하객 정보를 추가해주세요.", "error");
       return;
     }
     const statsBody = document.getElementById("stats-modal-body");
@@ -161,8 +293,8 @@ document
 		<div class="stat-card"><h3>최저액</h3><p>${minGuest.amount.toLocaleString()} 원</p><span>${
       minGuest.name
     } (${minGuest.relation})</span></div>
-	`;
-    statsModal.style.display = "flex";
+	  `;
+    openModal(statsModal); // modal 열기 함수 사용
   });
 
 // 식권 통계 및 설정 팝업
@@ -204,7 +336,7 @@ document
         : 0
     } 원</p></div>
 	`;
-    ticketStatsModal.style.display = "flex";
+    openModal(ticketStatsModal); 
   });
 
 // 식권 설정 저장
@@ -218,8 +350,9 @@ document
     ticketConfig.buffer = document.getElementById("ticket-buffer").value || "0";
     saveTicketConfig();
     updateTicketProgress();
-    alert("식권 설정이 저장되었습니다.");
-    ticketStatsModal.style.display = "none";
+    showToast("식권 설정이 저장되었습니다.", "success");
+
+    closeModal(ticketStatsModal); // modal 닫기 함수 사용
   });
 
 // 메인 폼 (축의금 기록)
@@ -233,7 +366,7 @@ document.getElementById("guest-form").addEventListener("submit", (e) => {
     tickets: parseInt(document.getElementById("tickets").value) || 0,
   };
   if (!guestData.name) {
-    alert("하객 이름을 입력해주세요.");
+    showToast("하객 이름을 입력해주세요.", "error");
     return;
   }
   if (editIndex > -1) {
@@ -270,24 +403,33 @@ nameInput.addEventListener("input", () => {
     autocompleteBox.appendChild(item);
   });
 });
+
 document.addEventListener("click", (e) => {
   if (e.target !== nameInput) {
     autocompleteBox.innerHTML = "";
+    ``;
+  }
+  if (e.target !== relationInput) {
+    relationSuggestionBox.innerHTML = "";
   }
 });
 
 // 하객 목록 작업 (수정, 삭제, 메모)
-guestListBody.addEventListener("click", (e) => {
+guestListBody.addEventListener("click", async (e) => {
   const button = e.target.closest("button");
   if (!button) return;
 
   const { classList, dataset } = button;
   const index = parseInt(dataset.index);
   if (classList.contains("delete-btn")) {
-    if (confirm(`'${guests[index].name}'님의 기록을 삭제하시겠습니까?`)) {
+    const confirmed = await showConfirm(
+      `'${guests[index].name}'님의 기록을 삭제하시겠습니까?`
+    );
+    if (confirmed) {
       guests.splice(index, 1);
       saveData();
       renderGuests();
+      showToast("삭제되었습니다.", "info");
     }
   } else if (classList.contains("edit-btn")) {
     const guest = guests[index];
@@ -304,7 +446,7 @@ guestListBody.addEventListener("click", (e) => {
       "memo-modal-title"
     ).textContent = `${guests[index].name}님 메모`;
     document.getElementById("memo-modal-body").textContent = guests[index].memo;
-    memoModal.style.display = "flex";
+    openModal(memoModal); // modal 열기 함수 사용
   }
 });
 
@@ -314,18 +456,21 @@ document
   .addEventListener("click", () => {
     tempPredefinedGuests = [...predefinedGuests];
     updateJsonPreview();
-    relationModal.style.display = "flex";
+    openModal(relationModal); // modal 열기 함수 사용
   });
-document.getElementById("clear-all").addEventListener("click", () => {
-  if (confirm("정말로 모든 기록을 삭제하시겠습니까?")) {
+
+document.getElementById("clear-all").addEventListener("click", async () => {
+  const confirmed = await showConfirm("정말로 모든 기록을 삭제하시겠습니까?");
+  if (confirmed) {
     guests = [];
     saveData();
     renderGuests();
+    showToast("모든 기록이 삭제되었습니다.", "info");
   }
 });
 document.getElementById("export-csv").addEventListener("click", () => {
   if (guests.length === 0) {
-    alert("내보낼 데이터가 없습니다.");
+    showToast("내보낼 데이터가 없습니다.", "error");
     return;
   }
   let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
@@ -349,11 +494,12 @@ document.getElementById("export-csv").addEventListener("click", () => {
 
 // 모달창 닫기
 const setupModalClose = (modal, closeButtonId) => {
-  const closeModal = () => (modal.style.display = "none");
-  document.getElementById(closeButtonId).addEventListener("click", closeModal);
+  document
+    .getElementById(closeButtonId)
+    .addEventListener("click", () => closeModal(modal));
   modal.addEventListener("click", (e) => {
     if (e.target === modal) {
-      closeModal();
+      closeModal(modal);
     }
   });
 };
@@ -430,11 +576,15 @@ document.getElementById("file-upload").addEventListener("change", (event) => {
       }
       tempPredefinedGuests = data;
       updateJsonPreview();
-      alert(
-        `${file.name} 파일을 성공적으로 읽었습니다. 하단 저장 버튼을 눌러 적용하세요.`
+      showToast(
+        `${file.name} 파일을 성공적으로 읽었습니다. 하단 저장 버튼을 눌러 적용하세요.`,
+        "success"
       );
     } catch (err) {
-      alert("파일을 처리하는 중 오류가 발생했습니다: " + err.message);
+      showToast(
+        "파일을 처리하는 중 오류가 발생했습니다: " + err.message,
+        "error"
+      );
     }
   };
 
@@ -459,7 +609,7 @@ document.getElementById("manual-add-btn").addEventListener("click", () => {
     manualRelationInput.value = "";
     manualNameInput.focus();
   } else {
-    alert("이름과 관계를 모두 입력해주세요.");
+    showToast("이름과 관계를 모두 입력해주세요.", "error");
   }
 });
 
@@ -475,26 +625,53 @@ manualRelationInput.addEventListener("keydown", (e) => {
 document.getElementById("copy-json-btn").addEventListener("click", () => {
   navigator.clipboard
     .writeText(jsonPreview.textContent)
-    .then(() => alert("JSON 데이터가 클립보드에 복사되었습니다."))
-    .catch(() => alert("복사에 실패했습니다."));
+    .then(() =>
+      showToast("JSON 데이터가 클립보드에 복사되었습니다.", "success")
+    )
+    .catch(() => showToast("복사에 실패했습니다.", "error"));
 });
 
 // JSON 비우기 버튼
-document.getElementById("clear-json-btn").addEventListener("click", () => {
-  if (confirm("현재 미리보기 중인 명단을 모두 비우시겠습니까?")) {
-    tempPredefinedGuests = [];
-    updateJsonPreview();
-  }
-});
+document
+  .getElementById("clear-json-btn")
+  .addEventListener("click", async () => {
+    const confirmed = await showConfirm(
+      "현재 미리보기 중인 명단을 모두 비우시겠습니까?"
+    );
+    if (confirmed) {
+      tempPredefinedGuests = [];
+      updateJsonPreview();
+      showToast("명단이 비워졌습니다.", "info");
+    }
+  });
 
 // '이 명단으로 저장' 최종 저장 버튼
-document.getElementById("save-relations-btn").addEventListener("click", () => {
-  if (confirm("현재 명단을 저장하시겠습니까? 기존 명단은 덮어씌워집니다.")) {
-    // [수정됨] 아래 한 줄을 추가하여 저장 로직을 실행
-    savePredefinedGuests();
-    alert("하객 명단이 성공적으로 저장되었습니다.");
-    relationModal.style.display = "none";
-  }
+document
+  .getElementById("save-relations-btn")
+  .addEventListener("click", async () => {
+    const confirmed = await showConfirm(
+      "현재 명단을 저장하시겠습니까? 기존 명단은 덮어씌워집니다."
+    );
+    if (confirmed) {
+      savePredefinedGuests();
+      showToast("하객 명단이 저장되었습니다.", "success");
+      closeModal(relationModal);
+    }
+  });
+
+// 관계 입력창 포커스 시 추천 목록 표시
+relationInput.addEventListener("focus", () => {
+  relationSuggestionBox.innerHTML = "";
+  commonRelations.forEach((relation) => {
+    const item = document.createElement("div");
+    item.className = "suggestion-item";
+    item.textContent = relation;
+    item.addEventListener("click", () => {
+      relationInput.value = relation;
+      relationSuggestionBox.innerHTML = "";
+    });
+    relationSuggestionBox.appendChild(item);
+  });
 });
 
 // --- 초기 실행 ---
