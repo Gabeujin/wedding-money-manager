@@ -71,6 +71,7 @@ body {
 }
 
 .main-header {
+  margin-top: var(--spacing-md);
   padding-bottom: var(--spacing-md);
   margin-bottom: var(--spacing-lg);
   border-bottom: 1px solid var(--gray-200);
